@@ -5,6 +5,7 @@ import (
 	"github.com/thisroot/go_lib/promclient"
 	"sql-to-smtp-service/config"
 	"sql-to-smtp-service/models"
+	"sql-to-smtp-service/smtp"
 )
 import _ "github.com/go-sql-driver/mysql"
 
@@ -25,12 +26,12 @@ func main() {
 		promclient.IncError("sql_set_connection")
 		logrus.WithError(err).Fatal("can't connection to mssql server")
 	}
-	env := &Env{db}
+	env := &Env{db }
 	mails, err := env.db.AllMails()
 	if err != nil {
 		logrus.WithError(err).Fatal("error db request")
 	}
-	for _, mail := range mails {
-		logrus.Println(mail)
-	}
+
+	ch := smtp.MailFabric(mails)
+	smtp.SendEmail(ch)
 }
