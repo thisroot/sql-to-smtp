@@ -1,9 +1,13 @@
 package config
 
-import "github.com/go-sql-driver/mysql"
+import (
+	"github.com/go-sql-driver/mysql"
+	"gopkg.in/gomail.v2"
+)
 
 type Configuration struct {
 	DB *mysql.Config
+	SMTP *gomail.Dialer
 }
 
 var Config = &Configuration{}
@@ -18,5 +22,11 @@ func init()  {
 		"devst",
 	}
 
+	var smtConfig = SMTPConfig{
+		Host:"5.79.119.5",
+		Port: 25,
+	}
+
 	Config.DB = mySqlRawConfig.GetMysqlConnectionConfig()
+	Config.SMTP = smtConfig.GetSMTPConnectionConfig()
 }

@@ -3,7 +3,7 @@ package smtp
 import (
 	"github.com/sirupsen/logrus"
 	"gopkg.in/gomail.v2"
-	"log"
+	"sql-to-smtp-service/config"
 	"sql-to-smtp-service/models"
 	"time"
 )
@@ -11,7 +11,21 @@ import (
 // https://godoc.org/gopkg.in/gomail.v2
 // https://stackoverflow.com/questions/24703943/passing-a-slice-into-a-channel
 
-func MailFabric(mails []*models.Mail) <- chan *gomail.Message  {
+type SMTP interface {
+	MailFabric(mails []*models.Mail) <- chan *gomail.Message
+	SendEmail( ch <-chan *gomail.Message)
+}
+
+type SMTPClient struct {
+	*gomail.Dialer
+}
+
+func NewSMTPClient(config *config.Configuration) (*SMTPClient, error)  {
+	logrus.Info("create SMTP dialer: ")
+	return &SMTPClient{ config.SMTP }, nil
+}
+
+func (SMTPClient) MailFabric (mails []*models.Mail) <- chan *gomail.Message  {
 	c := make(chan *gomail.Message)
 	go func(c chan *gomail.Message) {
 		defer close(c)
@@ -28,13 +42,7 @@ func MailFabric(mails []*models.Mail) <- chan *gomail.Message  {
 	return c
 }
 
-func SendEmail( ch <-chan *gomail.Message) {
-		d := gomail.Dialer{
-			Host:"5.79.119.5",
-			Port: 25,
-			SSL: false,
-		}
-
+func (d SMTPClient) SendEmail( ch <-chan *gomail.Message) {
 		var s gomail.SendCloser
 		var err error
 		open := false
@@ -55,7 +63,6 @@ func SendEmail( ch <-chan *gomail.Message) {
 				}
 				if err := gomail.Send(s, m); err != nil {
 					logrus.WithError(err).Fatal("error send")
-					log.Print(err)
 				}
 				logrus.Println("message sended")
 			// Close the connection to the SMTP server if no email was sent in
